@@ -93,6 +93,8 @@ func getLatest(c *gin.Context) {
 	cluster := c.Param("cluster")
 	var ret DataPoint1MinResultJSON
 	switch cluster {
+	case "atlasnet":
+		ret = GetLatestResult(Atlasnet)
 	case "mainnet-beta":
 		ret = GetLatestResult(MainnetBeta)
 	case "testnet":
@@ -129,6 +131,8 @@ func last6hoursNoPrice(c *gin.Context) {
 	cluster := c.Param("cluster")
 	var ret []DataPoint1MinResultJSON
 	switch cluster {
+	case "atlasnet":
+		ret = GetLast6hours(Atlasnet, NoComputeUnitPrice, 0)
 	case "mainnet-beta":
 		ret = GetLast6hours(MainnetBeta, NoComputeUnitPrice, 0)
 	case "testnet":
@@ -146,6 +150,8 @@ func last6hoursAll(c *gin.Context) {
 	cluster := c.Param("cluster")
 	var ret []DataPoint1MinResultJSON
 	switch cluster {
+	case "atlasnet":
+		ret = GetLast6hours(Atlasnet, AllData, 0)
 	case "mainnet-beta":
 		ret = GetLast6hours(MainnetBeta, AllData, 0)
 	case "testnet":
@@ -213,6 +219,8 @@ func GetLast6hours(c Cluster, priceType ComputeUnitPriceType, threshold uint64) 
 
 func GetClusterConfig(c Cluster) ClusterConfig {
 	switch c {
+	case Atlasnet:
+		return config.Atlasnet
 	case MainnetBeta:
 		return config.Mainnet
 	case Testnet:
