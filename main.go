@@ -3,11 +3,9 @@ package main
 import (
 	"flag"
 	"log"
-	"strings"
 	"time"
 
 	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
-	"github.com/blocto/solana-go-sdk/rpc"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -28,18 +26,18 @@ const (
 	MainnetBeta Cluster = "MainnetBeta"
 	Testnet             = "Testnet"
 	Devnet              = "Devnet"
+	Atlasnet            = "Atlasnet"
 )
 
 var influxdb *InfluxdbClient
 var userInputClusterMode string
-var mainnetFailover RPCFailover
-var testnetFailover RPCFailover
-var devnetFailover RPCFailover
+var atlasnetFailover RPCFailover
 
 const (
 	RunMainnetBeta ClustersToRun = "mainnet"
 	RunTestnet                   = "testnet"
 	RunDevnet                    = "devnet"
+	RunAtlasnet                  = "atlasnet"
 	RunAllClusters               = "all"
 )
 
@@ -53,27 +51,13 @@ func init() {
 	log.Println("--- //// Retension --- ")
 	log.Println(config.Retension)
 	log.Println("--- //// ClusterCLIConfig--- ")
-	log.Println("ClusterCLIConfig Mainnet", config.ClusterCLIConfig.ConfigMain)
-	log.Println("ClusterCLIConfig Testnet", config.ClusterCLIConfig.ConfigTestnet)
-	log.Println("ClusterCLIConfig Devnet", config.ClusterCLIConfig.ConfigDevnet)
-	log.Println("--- Mainnet Ping  --- ")
-	log.Println("Mainnet.ClusterPing.APIServer", config.Mainnet.ClusterPing.APIServer)
-	log.Println("Mainnet.ClusterPing.PingServiceEnabled", config.Mainnet.ClusterPing.PingServiceEnabled)
-	log.Println("Mainnet.ClusterPing.AlternativeEnpoint.HostList", config.Mainnet.ClusterPing.AlternativeEnpoint.HostList)
-	log.Println("Mainnet.ClusterPing.PingConfig", config.Mainnet.ClusterPing.PingConfig)
-	log.Println("Mainnet.ClusterPing.Report", config.Mainnet.ClusterPing.Report)
-	log.Println("--- Testnet Ping  --- ")
-	log.Println("Mainnet.ClusterPing.APIServer", config.Testnet.ClusterPing.APIServer)
-	log.Println("Mainnet.ClusterPing.PingServiceEnabled", config.Mainnet.ClusterPing.PingServiceEnabled)
-	log.Println("Testnet.ClusterPing.AlternativeEnpoint.HostList", config.Testnet.ClusterPing.AlternativeEnpoint.HostList)
-	log.Println("Testnet.ClusterPing.PingConfig", config.Testnet.ClusterPing.PingConfig)
-	log.Println("Testnet.ClusterPing.Report", config.Testnet.ClusterPing.Report)
-	log.Println("--- Devnet Ping  --- ")
-	log.Println("Devnet.ClusterPing.APIServer", config.Devnet.ClusterPing.APIServer)
-	log.Println("Devnet.ClusterPing.Enabled", config.Devnet.ClusterPing.PingServiceEnabled)
-	log.Println("Devnet.ClusterPing.AlternativeEnpoint.HostList", config.Devnet.ClusterPing.AlternativeEnpoint.HostList)
-	log.Println("Devnet.ClusterPing.PingConfig", config.Devnet.ClusterPing.PingConfig)
-	log.Println("Devnet.ClusterPing.Report", config.Devnet.ClusterPing.Report)
+	log.Println("ClusterCLIConfig Atlasnet", config.ClusterCLIConfig.ConfigAtlasnet)
+	log.Println("--- Atlasnet Ping  --- ")
+	log.Println("Atlasnet.ClusterPing.APIServer", config.Atlasnet.ClusterPing.APIServer)
+	log.Println("Atlasnet.ClusterPing.PingServiceEnabled", config.Atlasnet.ClusterPing.PingServiceEnabled)
+	log.Println("Atlasnet.ClusterPing.AlternativeEnpoint.HostList", config.Atlasnet.ClusterPing.AlternativeEnpoint.HostList)
+	log.Println("Atlasnet.ClusterPing.PingConfig", config.Atlasnet.ClusterPing.PingConfig)
+	log.Println("Atlasnet.ClusterPing.Report", config.Atlasnet.ClusterPing.Report)
 
 	log.Println(" *** Config End *** ")
 
@@ -99,36 +83,25 @@ func init() {
 		}
 		database = gormDB
 	}
+	err := database.AutoMigrate(&PingResult{})
+	if err != nil {
+		log.Printf("Failed to auto migrate: %v", err)
+	}
 	log.Println("database connected")
 	if config.InfluxdbConfig.Enabled {
 		influxdb = NewInfluxdbClient(config.InfluxdbConfig)
 	}
 	/// ---- Start RPC Failover ---
 	log.Println("RPC Endpoint Failover Setting ---")
-	if len(config.Mainnet.AlternativeEnpoint.HostList) <= 0 {
-		mainnetFailover = NewRPCFailover([]RPCEndpoint{{
-			Endpoint: rpc.MainnetRPCEndpoint,
+	if len(config.Atlasnet.AlternativeEnpoint.HostList) <= 0 {
+		atlasnetFailover = NewRPCFailover([]RPCEndpoint{{
+			Endpoint: "https://api.atlasnet.staratlas.cloud",
 			Piority:  1,
 			MaxRetry: 30}})
 	} else {
-		mainnetFailover = NewRPCFailover(config.Mainnet.AlternativeEnpoint.HostList)
+		atlasnetFailover = NewRPCFailover(config.Atlasnet.AlternativeEnpoint.HostList)
 	}
-	if len(config.Testnet.AlternativeEnpoint.HostList) <= 0 {
-		testnetFailover = NewRPCFailover([]RPCEndpoint{{
-			Endpoint: rpc.MainnetRPCEndpoint,
-			Piority:  1,
-			MaxRetry: 30}})
-	} else {
-		testnetFailover = NewRPCFailover(config.Testnet.AlternativeEnpoint.HostList)
-	}
-	if len(config.Devnet.AlternativeEnpoint.HostList) <= 0 {
-		devnetFailover = NewRPCFailover([]RPCEndpoint{{
-			Endpoint: rpc.MainnetRPCEndpoint,
-			Piority:  1,
-			MaxRetry: 30}})
-	} else {
-		devnetFailover = NewRPCFailover(config.Devnet.AlternativeEnpoint.HostList)
-	}
+
 }
 
 func main() {
@@ -138,23 +111,15 @@ func main() {
 		}
 		if database != nil {
 			sqldb, err := database.DB()
+
 			if err == nil {
 				sqldb.Close()
 			}
 		}
 	}()
 	flag.Parse()
-	clustersToRun := flag.Arg(0)
-	if !(strings.Compare(clustersToRun, string(RunMainnetBeta)) == 0 ||
-		strings.Compare(clustersToRun, string(RunTestnet)) == 0 ||
-		strings.Compare(clustersToRun, string(RunDevnet)) == 0 ||
-		strings.Compare(clustersToRun, string(RunAllClusters)) == 0) {
-		go launchWorkers(RunMainnetBeta)
-		go APIService(RunMainnetBeta)
-	} else {
-		go launchWorkers(ClustersToRun(clustersToRun))
-		go APIService(ClustersToRun(clustersToRun))
-	}
+	go launchWorkers(RunAtlasnet)
+	go APIService(RunAtlasnet)
 
 	for {
 		time.Sleep(10 * time.Second)

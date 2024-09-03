@@ -1,0 +1,61 @@
+name: 'Deploy to Cloud Run'
+description: 'Deploys a service or job to Cloud Run with optional immediate execution for jobs'
+
+inputs:
+  environment:
+    required: true
+    description: 'Deployment environment'
+    default: 'dev'
+  repository:
+    required: true
+    description: 'Artifact repository'
+    default: 'artifacts-0'
+  project-name:
+    required: true
+    description: 'Name of the project'
+  gcp-project-id:
+    required: true
+    description: 'Google Cloud Project ID'
+  app-name:
+    required: true
+    description: 'Name of the application'
+  gcp-auth-key:
+    required: true
+    description: 'GCP authentication key'
+  image-name:
+    required: true
+    description: 'Name of the Docker image'
+  deploy-type:
+    required: true
+    default: service
+    description: 'Type of deployment: "service" or "job"'
+  execute-immediately:
+    required: false
+    default: "false"
+    description: 'Whether to execute the job immediately after deployment (only for jobs)'
+
+runs:
+  using: 'composite'
+  steps:
+    - shell: bash
+      run: echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+
+    - uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ inputs.gcp-auth-key }}
+
+    - uses: google-github-actions/setup-gcloud@v2
+
+    - uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        project_id: ${{ inputs.gcp-project-id }}
+        ${{ inputs.deploy-type == 'job' && 'job' || 'service' }}: ${{ inputs.app-name }}
+        image: us-central1-docker.pkg.dev/${{ inputs.repository }}/${{ inputs.project-name }}/${{ inputs.image-name }}:sha-${{ env.sha_short }}
+
+    - name: Execute Job Immediately
+      if: inputs.deploy-type == 'job' && inputs.execute-immediately == 'true'
+      shell: bash
+      run: |
+        gcloud run jobs execute ${{ inputs.app-name }} \
+          --project ${{ inputs.gcp-project-id }} \
+          --region us-central1

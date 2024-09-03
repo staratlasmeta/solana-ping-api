@@ -1,0 +1,64 @@
+name: 'Build and Release Docker image'
+description: ''
+
+inputs:
+  repository:
+    required: true
+    description: ''
+    default: 'artifacts-0'
+  project-name:
+    required: true
+    description: ''
+  app-name:
+    required: true
+    description: ''
+    default: ''
+  gcp-auth-key:
+    required: true
+    description: ''
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: mobiledevops/secret-to-file-action@v1
+      with:
+        base64-encoded-secret: ${{ secrets.CONFIG_YAML }}
+        filename: "config.yaml"
+        is-executable: false
+        working-directory: "./"
+    - uses: mobiledevops/secret-to-file-action@v1
+      with:
+        base64-encoded-secret: ${{ secrets.CONFIG_ATLASNET_YAML }}
+        filename: "config-atlasnet.yaml"
+        is-executable: false
+        working-directory: "./"
+    - uses: mobiledevops/secret-to-file-action@v1
+      with:
+        base64-encoded-secret: ${{ secrets.ID_JSON }}
+        filename: "id.json"
+        is-executable: false
+        working-directory: "./"
+    - uses: docker/metadata-action@v5
+      id: metadata
+      with:
+        images: us-central1-docker.pkg.dev/${{ inputs.repository }}/${{ inputs.project-name }}/${{ inputs.app-name }}
+        tags: |
+          type=schedule
+          type=ref,event=branch
+          type=ref,event=tag
+          type=ref,event=pr
+          type=sha
+          type=raw,value=latest,enable={{is_default_branch}}
+    - uses: docker/login-action@v3
+      with:
+        username: _json_key
+        password: '${{ inputs.gcp-auth-key }}'
+        registry: 'us-central1-docker.pkg.dev'
+    - uses: int128/kaniko-action@v1
+      with:
+        push: true
+        file: Dockerfile
+        tags: ${{ steps.metadata.outputs.tags }}
+        labels: ${{ steps.metadata.outputs.labels }}
+        cache: true

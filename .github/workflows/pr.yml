@@ -1,0 +1,20 @@
+name: build-lint-test
+
+on:
+  merge_group:
+  pull_request:
+    branches: ['main']
+    types: [synchronize, opened, reopened]
+
+jobs:
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/release
+        with:
+          repository: 'artifacts-0'
+          project-name: 'atlasnet'
+          app-name: 'ping'
+          gcp-auth-key: ${{ secrets.GCP_AUTH_KEY }}

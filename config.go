@@ -89,13 +89,15 @@ type SolanaCLIConfig struct {
 }
 
 type ClusterCLIConfig struct {
-	Dir           string
-	MainnetPath   string
-	TestnetPath   string
-	DevnetPath    string
-	ConfigMain    SolanaCLIConfig
-	ConfigTestnet SolanaCLIConfig
-	ConfigDevnet  SolanaCLIConfig
+	Dir            string
+	MainnetPath    string
+	TestnetPath    string
+	DevnetPath     string
+	AtlasnetPath   string
+	ConfigMain     SolanaCLIConfig
+	ConfigTestnet  SolanaCLIConfig
+	ConfigDevnet   SolanaCLIConfig
+	ConfigAtlasnet SolanaCLIConfig
 }
 
 type RPCEndpoint struct {
@@ -131,9 +133,10 @@ type ClusterConfig struct {
 type Config struct {
 	Database
 	InfluxdbConfig
-	Mainnet ClusterConfig
-	Testnet ClusterConfig
-	Devnet  ClusterConfig
+	Mainnet  ClusterConfig
+	Atlasnet ClusterConfig
+	Testnet  ClusterConfig
+	Devnet   ClusterConfig
 	ClusterCLIConfig
 	Retension
 }
@@ -143,12 +146,8 @@ func loadConfig() Config {
 	// jww.SetStdoutThreshold(jww.LevelTrace)
 	c := Config{}
 	v := viper.New()
-	userHome, err := os.UserHomeDir()
-	if err != nil {
-		panic("loadConfig error:" + err.Error())
-	}
 
-	v.AddConfigPath(userHome + "/.config/ping-api")
+	v.AddConfigPath("./")
 	v.SetConfigType("yaml")
 	v.AutomaticEnv()
 	hostname, err := os.Hostname()
@@ -183,43 +182,25 @@ func loadConfig() Config {
 	}
 	// setup config.yaml (ClusterConfigFile)
 	c.ClusterCLIConfig = ClusterCLIConfig{
-		Dir:         v.GetString("SolanaCliFile.Dir"),
-		MainnetPath: v.GetString("SolanaCliFile.MainnetPath"),
-		TestnetPath: v.GetString("SolanaCliFile.TestnetPath"),
-		DevnetPath:  v.GetString("SolanaCliFile.DevnetPath"),
+		Dir:          v.GetString("SolanaCliFile.Dir"),
+		AtlasnetPath: v.GetString("SolanaCliFile.AtlasnetPath"),
 	}
 
-	if len(c.ClusterCLIConfig.MainnetPath) > 0 {
-		sConfig, err := ReadSolanaCLIConfigFile(c.ClusterCLIConfig.Dir + c.ClusterCLIConfig.MainnetPath)
+	if len(c.ClusterCLIConfig.AtlasnetPath) > 0 {
+		sConfig, err := ReadSolanaCLIConfigFile(c.ClusterCLIConfig.Dir + c.ClusterCLIConfig.AtlasnetPath)
 		if err != nil {
 			log.Fatal(err)
 		}
-		c.ClusterCLIConfig.ConfigMain = sConfig
-	}
-	if len(c.ClusterCLIConfig.TestnetPath) > 0 {
-		sConfig, err := ReadSolanaCLIConfigFile(c.ClusterCLIConfig.Dir + c.ClusterCLIConfig.TestnetPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		c.ClusterCLIConfig.ConfigTestnet = sConfig
-	}
-	if len(c.ClusterCLIConfig.DevnetPath) > 0 {
-		sConfig, err := ReadSolanaCLIConfigFile(c.ClusterCLIConfig.Dir + c.ClusterCLIConfig.DevnetPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		c.ClusterCLIConfig.ConfigDevnet = sConfig
+		c.ClusterCLIConfig.ConfigAtlasnet = sConfig
 	}
 	// setup  config.yaml (SolanaCliFile) all cluster services
-	configMainnetFile := v.GetString("ClusterConfigFile.Mainnet")
-	configTestnetFile := v.GetString("ClusterConfigFile.Testnet")
-	configDevnetFile := v.GetString("ClusterConfigFile.Devnet")
+	configAtlasnetFile := v.GetString("ClusterConfigFile.Atlasnet")
 	// Read Each Cluster Configurations
 	// setup config.yaml for mainnet
-	v.SetConfigName(configMainnetFile)
+	v.SetConfigName(configAtlasnetFile)
 	v.ReadInConfig()
-	c.Mainnet = ClusterConfig{
-		Cluster:     MainnetBeta,
+	c.Atlasnet = ClusterConfig{
+		Cluster:     Atlasnet,
 		HostName:    hostname,
 		ClusterPing: ReadClusterPingConfig(v),
 	}
@@ -227,30 +208,6 @@ func loadConfig() Config {
 		c.Mainnet.APIServer.Mode != HTTPS && c.Mainnet.APIServer.Mode != BOTH {
 		c.Mainnet.APIServer.Mode = HTTP
 		log.Println("Mainnet API server mode not support! use default mode")
-	}
-	v.SetConfigName(configTestnetFile)
-	v.ReadInConfig()
-	c.Testnet = ClusterConfig{
-		Cluster:     Testnet,
-		HostName:    hostname,
-		ClusterPing: ReadClusterPingConfig(v),
-	}
-	if c.Testnet.APIServer.Mode != HTTP &&
-		c.Testnet.APIServer.Mode != HTTPS && c.Testnet.APIServer.Mode != BOTH {
-		c.Testnet.APIServer.Mode = HTTP
-		log.Println("Mainnet API server mode not support! use default mode")
-	}
-	v.SetConfigName(configDevnetFile)
-	v.ReadInConfig()
-	c.Devnet = ClusterConfig{
-		Cluster:     Devnet,
-		HostName:    hostname,
-		ClusterPing: ReadClusterPingConfig(v),
-	}
-	if c.Devnet.APIServer.Mode != HTTP &&
-		c.Devnet.APIServer.Mode != HTTPS && c.Devnet.APIServer.Mode != BOTH {
-		c.Devnet.APIServer.Mode = HTTP
-		log.Println("Devnet API server mode not support! use default mode")
 	}
 	return c
 }

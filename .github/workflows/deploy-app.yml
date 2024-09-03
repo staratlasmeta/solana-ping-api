@@ -1,0 +1,29 @@
+name: deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      GCP_AUTH_KEY:
+        required: true
+jobs:
+
+
+  deploy-ping:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          deploy-type: service
+          environment: ${{ inputs.environment }}
+          gcp-project-id: fuzzy-lemur-${{ inputs.environment }}
+          gcp-auth-key: ${{ secrets.GCP_AUTH_KEY }}
+          repository: "artifacts-0"
+          project-name: "atlasnet"
+          app-name: "ping-api"
+          image-name: "ping"

@@ -30,3 +30,6 @@ config-devnet.yaml
 # Go workspace file
 go.work.*
 
+id.json
+config-atlasnet.yaml
+.idea/

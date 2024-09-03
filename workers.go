@@ -40,6 +40,8 @@ func launchWorkers(c ClustersToRun) {
 	}
 	// Single Cluster or all Cluster
 	switch c {
+	case RunAtlasnet:
+		runCluster(config.Atlasnet)
 	case RunMainnetBeta:
 		runCluster(config.Mainnet)
 	case RunTestnet:
@@ -68,25 +70,11 @@ func pingDataWorker(cConf ClusterConfig, workerNum int) {
 	var acct types.Account
 
 	switch cConf.Cluster {
-	case MainnetBeta:
-		failover = mainnetFailover
-		clusterAcct, err := getConfigKeyPair(config.ClusterCLIConfig.ConfigMain)
+	case Atlasnet:
+		failover = atlasnetFailover
+		clusterAcct, err := getConfigKeyPair(config.ClusterCLIConfig.ConfigAtlasnet)
 		if err != nil {
 			log.Panic("getConfigKeyPair Error")
-		}
-		acct = clusterAcct
-	case Testnet:
-		failover = testnetFailover
-		clusterAcct, err := getConfigKeyPair(config.ClusterCLIConfig.ConfigTestnet)
-		if err != nil {
-			log.Panic("Testnet getConfigKeyPair Error")
-		}
-		acct = clusterAcct
-	case Devnet:
-		failover = devnetFailover
-		clusterAcct, err := getConfigKeyPair(config.ClusterCLIConfig.ConfigDevnet)
-		if err != nil {
-			log.Panic("Devnet getConfigKeyPair Error")
 		}
 		acct = clusterAcct
 	default:
@@ -177,12 +165,8 @@ func reportWorker(cConf ClusterConfig) {
 			toSendAlert bool, alertTrigger AlertTrigger, messageMemo string) {
 			var accessToken string
 			switch cConf.Cluster {
-			case MainnetBeta:
-				accessToken = mainnetFailover.GetEndpoint().AccessToken
-			case Testnet:
-				accessToken = testnetFailover.GetEndpoint().AccessToken
-			case Devnet:
-				accessToken = devnetFailover.GetEndpoint().AccessToken
+			case Atlasnet:
+				accessToken = atlasnetFailover.GetEndpoint().AccessToken
 			default:
 				panic(fmt.Sprintf("%s:%s", "no such cluster", cConf.Cluster))
 			}

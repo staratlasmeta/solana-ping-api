@@ -1,0 +1,24 @@
+name: deploy
+
+on:
+  push:
+    branches: [ 'main' ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/release
+        with:
+          repository: "artifacts-0"
+          project-name: "atlasnet"
+          app-name: "ping"
+          gcp-auth-key: ${{ secrets.GCP_AUTH_KEY }}
+
+  deploy-test:
+    needs: [ release ]
+    uses: ./.github/workflows/deploy-app.yml
+    with:
+      environment: 'test'
+    secrets: inherit

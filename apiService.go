@@ -51,59 +51,14 @@ func APIService(c ClustersToRun) {
 	}
 	// Single Cluster or all Cluster
 	switch c {
-	case RunMainnetBeta:
-		if config.Mainnet.APIServer.Enabled {
-			go runCluster(config.Mainnet.APIServer.Mode,
-				config.Mainnet.APIServer.IP,
-				config.Mainnet.APIServer.SSLIP,
-				config.Mainnet.APIServer.KeyPath,
-				config.Mainnet.APIServer.CrtPath)
-			log.Println("--- API Server Mainnet Start--- ")
-		}
-
-	case RunTestnet:
-		if config.Testnet.APIServer.Enabled {
-			go runCluster(config.Testnet.APIServer.Mode,
-				config.Testnet.APIServer.IP,
-				config.Testnet.APIServer.SSLIP,
-				config.Testnet.APIServer.KeyPath,
-				config.Testnet.APIServer.CrtPath)
-			log.Println("--- API Server Testnet Start--- ")
-		}
-
-	case RunDevnet:
-		if config.Devnet.APIServer.Enabled {
-			go runCluster(config.Devnet.APIServer.Mode,
-				config.Devnet.APIServer.IP,
-				config.Devnet.APIServer.SSLIP,
-				config.Devnet.APIServer.KeyPath,
-				config.Devnet.APIServer.CrtPath)
-			log.Println("--- API Server Devnet Start--- ")
-		}
-	case RunAllClusters:
-		if config.Mainnet.APIServer.Enabled {
-			go runCluster(config.Mainnet.APIServer.Mode,
-				config.Mainnet.APIServer.IP,
-				config.Mainnet.APIServer.SSLIP,
-				config.Mainnet.APIServer.KeyPath,
-				config.Mainnet.APIServer.CrtPath)
-			log.Println("--- API Server Mainnet Start--- ")
-		}
-		if config.Testnet.APIServer.Enabled {
-			go runCluster(config.Testnet.APIServer.Mode,
-				config.Testnet.APIServer.IP,
-				config.Testnet.APIServer.SSLIP,
-				config.Testnet.APIServer.KeyPath,
-				config.Testnet.APIServer.CrtPath)
-			log.Println("--- API Server Testnet Start--- ")
-		}
-		if config.Devnet.APIServer.Enabled {
-			go runCluster(config.Devnet.APIServer.Mode,
-				config.Devnet.APIServer.IP,
-				config.Devnet.APIServer.SSLIP,
-				config.Devnet.APIServer.KeyPath,
-				config.Devnet.APIServer.CrtPath)
-			log.Println("--- API Server Devnet Start--- ")
+	case RunAtlasnet:
+		if config.Atlasnet.APIServer.Enabled {
+			go runCluster(config.Atlasnet.APIServer.Mode,
+				config.Atlasnet.APIServer.IP,
+				config.Atlasnet.APIServer.SSLIP,
+				config.Atlasnet.APIServer.KeyPath,
+				config.Atlasnet.APIServer.CrtPath)
+			log.Println("--- API Server Atlasnet Start--- ")
 		}
 
 	default:
@@ -119,12 +74,8 @@ func getRPCEndpoint(c *gin.Context) {
 	cluster := c.Param("cluster")
 	var e *FailoverEndpoint
 	switch cluster {
-	case "mainnet-beta":
-		e = mainnetFailover.GetEndpoint()
-	case "testnet":
-		e = testnetFailover.GetEndpoint()
-	case "devnet":
-		e = devnetFailover.GetEndpoint()
+	case "atlasnet":
+		e = atlasnetFailover.GetEndpoint()
 	default:
 		c.AbortWithStatus(http.StatusNotFound)
 		log.Println("StatusNotFound Error:", cluster)
@@ -159,6 +110,8 @@ func last6hours(c *gin.Context) {
 	cluster := c.Param("cluster")
 	var ret []DataPoint1MinResultJSON
 	switch cluster {
+	case "atlasnet":
+		ret = GetLast6hours(Atlasnet, HasComputeUnitPrice, 0)
 	case "mainnet-beta":
 		ret = GetLast6hours(MainnetBeta, HasComputeUnitPrice, 0)
 	case "testnet":
