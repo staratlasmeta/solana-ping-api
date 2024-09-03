@@ -1,7 +1,7 @@
 FROM golang:1.22 AS builder
 WORKDIR /workspace
 COPY . .
-RUN go build -o app .
+RUN go build -buildvcs=false -o app .
 
 FROM debian:latest
 RUN \
