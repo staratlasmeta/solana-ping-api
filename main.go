@@ -95,7 +95,7 @@ func init() {
 	log.Println("RPC Endpoint Failover Setting ---")
 	if len(config.Atlasnet.AlternativeEnpoint.HostList) <= 0 {
 		atlasnetFailover = NewRPCFailover([]RPCEndpoint{{
-			Endpoint: "https://api.atlasnet.staratlas.cloud",
+			Endpoint: "https://rpc.ironforge.network/devnet?apiKey=01JDFH9D2N751ZHYCVK7P35YPE",
 			Piority:  1,
 			MaxRetry: 30}})
 	} else {
